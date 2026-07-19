@@ -1,0 +1,3 @@
+# §7: raw vendor archives are PRIVATE — never published, never committed.
+scoring/archive/
+__pycache__/

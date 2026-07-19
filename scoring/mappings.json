@@ -1,0 +1,66 @@
+{
+  "_comment": "Vendor vocabulary mappings per METHODOLOGY.md §4.2/§5. Status: DRAFT — each vendor block is verified against live API responses at freeze and this file is committed then. Line-type families: mobile | landline | fixed_voip | non_fixed_voip | toll_free.",
+
+  "line_type_families": ["mobile", "landline", "fixed_voip", "non_fixed_voip", "toll_free"],
+  "voip_super_family": ["fixed_voip", "non_fixed_voip"],
+
+  "line_type_map": {
+    "boundstone": {
+      "mobile": "mobile", "fixed_line": "landline", "fixed_line_or_mobile": "AMBIGUOUS_FLM",
+      "voip": "non_fixed_voip", "toll_free": "toll_free"
+    },
+    "onelookup": {
+      "_status": "draft — verify at freeze",
+      "mobile": "mobile", "landline": "landline", "fixed_voip": "fixed_voip",
+      "non_fixed_voip": "non_fixed_voip", "nonFixedVoip": "non_fixed_voip",
+      "fixedVoip": "fixed_voip", "toll_free": "toll_free", "tollfree": "toll_free", "voip": "VOIP_UNSPECIFIED"
+    },
+    "trestle": {
+      "_status": "draft — verify at freeze",
+      "Mobile": "mobile", "Landline": "landline", "FixedVOIP": "fixed_voip",
+      "NonFixedVOIP": "non_fixed_voip", "TollFree": "toll_free", "Voip": "VOIP_UNSPECIFIED"
+    },
+    "twilio": {
+      "_status": "draft — verify at freeze",
+      "mobile": "mobile", "landline": "landline", "fixedVoip": "fixed_voip",
+      "nonFixedVoip": "non_fixed_voip", "voip": "VOIP_UNSPECIFIED", "tollFree": "toll_free"
+    },
+    "numverify": {
+      "_status": "draft — verify at freeze",
+      "mobile": "mobile", "landline": "landline", "special_services": "OTHER",
+      "toll_free": "toll_free", "voip": "VOIP_UNSPECIFIED"
+    }
+  },
+
+  "validity_map": {
+    "_rule": "boolean valid field used directly; vendors returning only a confidence score map score >= 0.5 -> valid (METHODOLOGY §5); per-vendor field names verified at freeze",
+    "score_threshold": 0.5
+  },
+
+  "carrier_normalize": {
+    "_rule": "lowercase, strip punctuation, drop suffix words before brand matching (METHODOLOGY §4.3)",
+    "drop_suffixes": ["wireless", "communications", "telecom", "telecommunications", "inc", "llc", "corp", "co", "usa", "us", "mobility"],
+    "brand_aliases": {
+      "verizon": ["verizon", "cellco partnership", "cellco"],
+      "at&t": ["att", "at t", "new cingular", "cingular"],
+      "t-mobile": ["tmobile", "t mobile", "metro by t mobile", "metropcs"],
+      "twilio": ["twilio"],
+      "telnyx": ["telnyx"],
+      "google": ["google voice", "google"],
+      "bandwidth": ["bandwidth", "bandwidth com"]
+    },
+    "_aliases_status": "seed list — extended (append-only) as category A–C rows are acquired, final at freeze"
+  },
+
+  "mvno_hosts": {
+    "_rule": "host-network answer instead of MVNO brand earns 0.5 (METHODOLOGY §5); table finalized at freeze from category C attestations",
+    "mint mobile": "t-mobile",
+    "cricket": "at&t",
+    "visible": "verizon",
+    "boost": "t-mobile",
+    "google fi": "t-mobile",
+    "us mobile": "verizon",
+    "consumer cellular": "at&t",
+    "straight talk": "verizon"
+  }
+}
