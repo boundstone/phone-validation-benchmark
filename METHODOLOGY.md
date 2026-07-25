@@ -23,7 +23,7 @@ The accuracy of four commercial phone-validation APIs on 1,000 North American (N
 
 All accounts are ordinary public self-serve accounts paid at list price. No sales contact, no negotiated tiers, no vendor is notified before the run. **Legal gate, declared up front:** if counsel advises that a vendor's terms of service prohibit our participation as a competitor, that vendor's column may be anonymized ("Vendor D") or withdrawn before publication; the event and reason will be recorded in `ERRATA.md`. The scoring of remaining vendors does not change.
 
-Boundstone's own API is **not** in run № 001 (it was not publicly available at freeze). From the first quarterly re-run after our public launch, Boundstone is tested under this identical protocol and its scores published, win or lose.
+Boundstone's own API is **not** in run № 001 — self-exclusion: we author and fund this benchmark, and our product launched only days before the freeze. From the first quarterly re-run after our public launch, Boundstone is tested under this identical protocol and its scores published, win or lose.
 
 ## 3. Dataset composition (1,000 numbers)
 

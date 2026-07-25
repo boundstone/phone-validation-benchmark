@@ -5,7 +5,7 @@ Pre-registered public benchmark of commercial phone-validation APIs. The methodo
 **Freeze verification:** at freeze this repo is tagged `methodology-v1.0` and the SHA-256 of `METHODOLOGY.md` is published at [boundstone.io/methodology](https://boundstone.io/methodology) and below.
 
 ```
-sha256(METHODOLOGY.md) = <posted at freeze>
+sha256(METHODOLOGY.md) = 24fb254ed62b0aef493520e60d29652234405cb7e77a7dcedfa1f636ee34969d
 ```
 
 ## Repository layout (populated in this order)
