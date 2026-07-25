@@ -1,3 +1,5 @@
 # §7: raw vendor archives are PRIVATE — never published, never committed.
 scoring/archive/
 __pycache__/
+# Vendor API credentials for probe/collect (env-var file, sourced at run time).
+scoring/creds.env
