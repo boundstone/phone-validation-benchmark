@@ -162,7 +162,7 @@ VENDORS = {
         "min_interval_s": 1.1, "on_4xx": "error",
     },
     "twilio": {
-        "status": "draft — request shape is Lookup v2 public docs; probe at freeze",
+        "status": "probed 2026-07-25 — valid:true and valid:false (200, INVALID_BUT_POSSIBLE) shapes verified live; 404 flag kept per docs",
         "request": _req_twilio,
         "env": ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
         "valid_path": "valid",
