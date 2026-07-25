@@ -157,5 +157,40 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(out[1], "numverify,r1,true,toll_free,Fictional Telecom,")
 
 
+
+
+class OneLookupV2Rules(unittest.TestCase):
+    """Adapter rules pinned from the 2026-07-25 live probes of their V2 platform."""
+
+    V2 = {"data": {"classification": {"number_status": "ACTIVE", "line_type": "MOBILE"},
+                   "insights": {"raw_api_fields": {"network": "Fictional Wireless"}}}}
+
+    def test_v2_shape_maps_all_three_dimensions(self):
+        row = rv.normalize_record("onelookup", record("onelookup", [ok(self.V2)]), [])
+        self.assertEqual((row["valid"], row["line_type"], row["carrier"], row["error"]),
+                         ("true", "mobile", "Fictional Wireless", ""))
+
+    def test_http400_is_an_invalid_answer_not_an_error(self):
+        """V2 answers unparseable numbers with 400 INVALID_INPUT — a vendor answer."""
+        row = rv.normalize_record("onelookup", record("onelookup", [ok(
+            {"success": False, "error": {"code": "INVALID_INPUT"}}, 400)]), [])
+        self.assertEqual((row["valid"], row["error"]), ("false", ""))
+
+    def test_unknown_status_string_abstains_and_logs(self):
+        """A number_status we haven't mapped is OUR gap: abstain + loud log."""
+        body = {"data": {"classification": {"number_status": "SUSPENDED_MAYBE"}}}
+        unmapped = []
+        row = rv.normalize_record("onelookup", record("onelookup", [ok(body)]), unmapped)
+        self.assertEqual(row["valid"], "")
+        self.assertEqual(len(unmapped), 1)
+        self.assertIn("SUSPENDED_MAYBE", unmapped[0]["raw"])
+
+    def test_other_4xx_still_an_error_not_an_answer(self):
+        """401/403/429 must NOT be treated as vendor answers (on_4xx stays 'error')."""
+        row = rv.normalize_record("onelookup", record("onelookup", [ok(
+            {"error": "unauthorized"}, 401)]), [])
+        self.assertEqual((row["valid"], row["error"]), ("", "http_401"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

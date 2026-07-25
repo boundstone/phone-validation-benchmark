@@ -26,9 +26,9 @@ re-run without touching any vendor a second time.
 Vendor adapters (§2). Endpoints and field paths are DRAFT until verified
 against a live self-serve account at freeze — same convention as the vendor
 blocks in mappings.json. Verify each with `probe` before a real run.
-Boundstone's own API is NOT part of run № 001 (§2: not publicly available at
-freeze); its adapter exists for the quarterly re-runs and requires the
-explicit --include-boundstone flag.
+Boundstone's own API is NOT part of run № 001 (§2 self-exclusion: we author
+and fund this benchmark); its adapter exists for the quarterly re-runs and
+requires the explicit --include-boundstone flag.
 
 Credentials come only from environment variables (never argv, never files in
 this repo): ONELOOKUP_API_KEY, TRESTLE_API_KEY, TWILIO_ACCOUNT_SID +
@@ -82,10 +82,19 @@ def dig(obj, path: str):
 # --------------------------------------------------------------------------
 
 def _req_onelookup(e164: str):
+    # V2 platform contract (probed 2026-07-25): POST app.1lookup.io/api/v1/phone,
+    # Bearer auth, body {"phone_number": ...}. The pre-freeze draft guessed
+    # api.1lookup.io + x-api-key, which never resolved.
     key = os.environ["ONELOOKUP_API_KEY"]
     return urllib.request.Request(
-        f"https://api.1lookup.io/v1/phone/{e164}",
-        headers={"x-api-key": key, "user-agent": USER_AGENT},
+        "https://app.1lookup.io/api/v1/phone",
+        data=json.dumps({"phone_number": e164}).encode(),
+        headers={
+            "authorization": f"Bearer {key}",
+            "content-type": "application/json",
+            "user-agent": USER_AGENT,
+        },
+        method="POST",
     )
 
 
@@ -134,11 +143,16 @@ VENDORS = {
     # still a vendor answer (archived + normalized); 'error' means 4xx is a
     # failure (abstain, logged) pending review at freeze.
     "onelookup": {
-        "status": "draft — verify endpoint+fields with `probe` at freeze",
+        "status": "probed 2026-07-25 — V2 (app.1lookup.io) live-verified; unknown vocab fails loudly",
         "request": _req_onelookup,
         "env": ["ONELOOKUP_API_KEY"],
-        "valid_path": "valid", "line_type_path": "line_type", "carrier_path": "carrier",
-        "min_interval_s": 1.1, "on_4xx": "error",
+        "valid_path": "data.classification.number_status",
+        # Observed: ACTIVE. Others inferred from their status vocabulary —
+        # anything not listed logs as unmapped and blocks publication.
+        "valid_strings": {"true": ["ACTIVE"], "false": ["INACTIVE", "INVALID", "DISCONNECTED"]},
+        "line_type_path": "data.classification.line_type",
+        "carrier_path": "data.insights.raw_api_fields.network",
+        "min_interval_s": 1.1, "on_4xx": "error", "http400_means_invalid": True,
     },
     "trestle": {
         "status": "draft — verify endpoint+fields with `probe` at freeze",
@@ -159,7 +173,7 @@ VENDORS = {
         "min_interval_s": 1.1, "on_4xx": "answer", "http404_means_invalid": True,
     },
     "numverify": {
-        "status": "draft — legacy apilayer.net endpoint; probe at freeze",
+        "status": "probed 2026-07-25 — apilayer endpoint + draft field paths verified live",
         "request": _req_numverify,
         "env": ["NUMVERIFY_API_KEY"],
         "valid_path": "valid", "line_type_path": "line_type", "carrier_path": "carrier",
@@ -278,6 +292,13 @@ def normalize_record(vendor: str, record: dict, unmapped: list) -> dict:
     if status == 404 and cfg.get("http404_means_invalid"):
         row["valid"] = "false"
         return row
+    # 1Lookup V2 (probed 2026-07-25) answers an unparseable/invalid number with
+    # HTTP 400 INVALID_INPUT — a vendor answer (invalid), not a transport
+    # failure, same reasoning as Twilio's 404. Other 4xx (401/403/429) still
+    # fall through to on_4xx handling.
+    if status == 400 and cfg.get("http400_means_invalid"):
+        row["valid"] = "false"
+        return row
     if status >= 500 or (400 <= status < 500 and cfg["on_4xx"] == "error"):
         row["error"] = f"http_{status}"
         return row
@@ -292,6 +313,17 @@ def normalize_record(vendor: str, record: dict, unmapped: list) -> dict:
         row["valid"] = "true" if v else "false"
     elif isinstance(v, (int, float)):  # confidence-score vendors (mappings _rule)
         row["valid"] = "true" if v >= MAPPINGS["validity_map"]["score_threshold"] else "false"
+    elif isinstance(v, str) and "valid_strings" in cfg:
+        # Status-string vendors (1Lookup V2 number_status). Unknown values are
+        # OUR mapping gap — logged for review, dimension abstains, run fails
+        # loudly at the end (same contract as unmapped line types).
+        vs = cfg["valid_strings"]
+        if v in vs["true"]:
+            row["valid"] = "true"
+        elif v in vs["false"]:
+            row["valid"] = "false"
+        else:
+            unmapped.append({"vendor": vendor, "row_id": record["row_id"], "raw": f"validity:{v}"})
 
     lt_raw = dig(body, cfg["line_type_path"]) if cfg["line_type_path"] else None
     if lt_raw is not None and lt_raw != "":
