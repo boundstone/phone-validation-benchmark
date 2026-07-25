@@ -192,5 +192,28 @@ class OneLookupV2Rules(unittest.TestCase):
         self.assertEqual((row["valid"], row["error"]), ("", "http_401"))
 
 
+class CurlTransportRules(unittest.TestCase):
+    """Trestle collection uses curl (their WAF 403s Python's TLS fingerprint,
+    verified 2026-07-25). The argv builder must carry the full request."""
+
+    def test_get_request_argv(self):
+        import os
+        os.environ.setdefault("TRESTLE_API_KEY", "FAKE_TEST_KEY")
+        argv = rv.curl_argv(rv._req_trestle("+14155550100"), 30)
+        self.assertEqual(argv[0], "curl")
+        self.assertIn("%2B14155550100", argv[-1])          # + stays URL-encoded
+        self.assertTrue(any(a.lower().startswith("x-api-key:") for a in argv))
+        self.assertIn("-m", argv)                           # timeout enforced
+
+    def test_post_request_argv_carries_body(self):
+        import os
+        os.environ.setdefault("ONELOOKUP_API_KEY", "FAKE_TEST_KEY")
+        argv = rv.curl_argv(rv._req_onelookup("+14155550100"), 30)
+        self.assertIn("-X", argv)
+        self.assertIn("POST", argv)
+        self.assertIn("--data-binary", argv)
+        self.assertIn('"+14155550100"', argv[argv.index("--data-binary") + 1])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

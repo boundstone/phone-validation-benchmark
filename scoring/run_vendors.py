@@ -42,9 +42,11 @@ import base64
 import csv
 import json
 import os
+import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -99,9 +101,12 @@ def _req_onelookup(e164: str):
 
 
 def _req_trestle(e164: str):
+    # The + MUST be URL-encoded (%2B): a raw + in the query string decodes as a
+    # space and their gateway answers a misleading 403 INVALID_API_KEY (probed
+    # 2026-07-25 — cost a day of chasing key scopes that were fine all along).
     key = os.environ["TRESTLE_API_KEY"]
     return urllib.request.Request(
-        f"https://api.trestleiq.com/3.0/phone_intel?phone={e164}",
+        f"https://api.trestleiq.com/3.0/phone_intel?phone={urllib.parse.quote(e164, safe='')}",
         headers={"x-api-key": key, "user-agent": USER_AGENT},
     )
 
@@ -155,9 +160,10 @@ VENDORS = {
         "min_interval_s": 1.1, "on_4xx": "error", "http400_means_invalid": True,
     },
     "trestle": {
-        "status": "draft — verify endpoint+fields with `probe` at freeze",
+        "status": "probed 2026-07-25 — endpoint+fields verified live; curl transport (their WAF blocks Python TLS)",
         "request": _req_trestle,
         "env": ["TRESTLE_API_KEY"],
+        "transport": "curl",
         "valid_path": "is_valid", "line_type_path": "line_type", "carrier_path": "carrier",
         "min_interval_s": 1.1, "on_4xx": "error",
     },
@@ -195,9 +201,36 @@ RUN_001_VENDORS = ["onelookup", "trestle", "twilio", "numverify"]  # §2
 # Collection
 # --------------------------------------------------------------------------
 
+def curl_argv(req, timeout_s: int) -> list:
+    """Build a curl command equivalent to a urllib Request (headers + URL).
+
+    Why curl exists as a transport at all: Trestle's WAF fingerprints and
+    rejects Python's TLS ClientHello with a misleading 403 INVALID_API_KEY
+    (verified 2026-07-25: same key + same request 200s from curl/Node and
+    403s from urllib regardless of headers, ALPN or cipher tweaks). Calling
+    their documented endpoint with our paid key through a standard client is
+    ordinary customer behavior — documented here rather than worked around
+    silently.
+    """
+    argv = ["curl", "-sS", "-m", str(timeout_s), "-w", "\n%{http_code}"]
+    for k, v in req.header_items():
+        argv += ["-H", f"{k}: {v}"]
+    if req.data is not None:
+        argv += ["-X", req.get_method(), "--data-binary", req.data.decode("utf-8")]
+    argv.append(req.full_url)
+    return argv
+
+
 def fetch_once(vendor: str, e164: str):
     """One HTTP attempt. Returns (http_status, body_text) or raises on transport error."""
     req = VENDORS[vendor]["request"](e164)
+    if VENDORS[vendor].get("transport") == "curl":
+        proc = subprocess.run(curl_argv(req, TIMEOUT_S), capture_output=True, text=True,
+                              timeout=TIMEOUT_S + 5)
+        if proc.returncode != 0:  # transport error — retryable per §6
+            raise OSError(f"curl exit {proc.returncode}: {proc.stderr.strip()[:200]}")
+        body, _, status = proc.stdout.rpartition("\n")
+        return int(status), body
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
             return resp.status, resp.read().decode("utf-8", "replace")
