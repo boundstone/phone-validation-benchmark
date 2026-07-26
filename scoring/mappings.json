@@ -20,7 +20,7 @@
    "toll_free": "toll_free"
   },
   "onelookup": {
-   "_status": "V2 probed 2026-07-25 — MOBILE observed live; other UPPERCASE values inferred from their enum style, unknowns fail loudly",
+   "_status": "V2 probed 2026-07-25; 'UNKNOWN' confirmed 2026-07-26 in the rehearsal run — it accompanies number_status INVALID, i.e. an explicit no-information answer, so it abstains on line type per §5 rather than scoring as wrong",
    "MOBILE": "mobile",
    "LANDLINE": "landline",
    "FIXED_VOIP": "fixed_voip",
@@ -32,7 +32,8 @@
    "fixed_voip": "fixed_voip",
    "non_fixed_voip": "non_fixed_voip",
    "toll_free": "toll_free",
-   "voip": "VOIP_UNSPECIFIED"
+   "voip": "VOIP_UNSPECIFIED",
+   "UNKNOWN": ""
   },
   "trestle": {
    "_status": "draft — verify at freeze",
@@ -53,12 +54,13 @@
    "tollFree": "toll_free"
   },
   "numverify": {
-   "_status": "probed 2026-07-25 — landline observed live on the real apilayer endpoint; carrier came back empty on current plan (abstain)",
+   "_status": "probed 2026-07-25 — landline observed live on the real apilayer endpoint; carrier came back empty on current plan (abstain) · 'paging' added 2026-07-26 from the rehearsal run (carrier 'Spok Inc.', a real paging network): a legitimate class outside the five scored families, so OTHER (excluded), matching the existing special_services precedent",
    "mobile": "mobile",
    "landline": "landline",
    "special_services": "OTHER",
    "toll_free": "toll_free",
-   "voip": "VOIP_UNSPECIFIED"
+   "voip": "VOIP_UNSPECIFIED",
+   "paging": "OTHER"
   }
  },
  "validity_map": {
