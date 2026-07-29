@@ -99,18 +99,49 @@ behaviour. Two decisions were required:
 Neither altered a scoring rule. `METHODOLOGY.md` was unmodified and its checksum
 verified before each commit.
 
-### 2026-07-29 — category E pre-port carrier recorded as the underlying carrier, not the reseller
+### 2026-07-29 — category E pre-port carrier recorded as ONVOY
 
-Category E ground truth is "before/after carrier known" (§3). The five numbers
-were purchased through **Twilio**, but the carrier of record — and what an LRN/OCN
-dip returns — is **ONVOY, LLC - PA**, since Twilio resells over Onvoy. Recording
-the reseller as truth would have scored a vendor **wrong for correctly answering
-"Onvoy"**. The private provenance store now carries `underlying_carrier_pre_port`
-as a column distinct from the reseller.
+Telnyx's port confirmation named the losing carrier as **ONVOY, LLC - PA**, not
+Twilio (Twilio resells over Onvoy). This was recorded as the pre-port carrier for
+category E, on the reasoning that an LRN/OCN dip returns the underlying carrier
+and that recording the reseller would penalise a vendor for answering correctly.
 
-No methodology change: §3's wording already means the carrier of record. This is
-recorded because the distinction is easy to get wrong and materially affects the
-carrier dimension.
+### 2026-07-30 — CORRECTION: the above was wrong. Carrier truth is Twilio.
+
+**What was wrong:** the 2026-07-29 entry assumed vendors would report the
+underlying carrier. They do not.
+
+**How it was found:** probing owned numbers before the category D release closed
+that window. Two vendors independently return the same value:
+
+| Vendor | Carrier returned |
+|---|---|
+| Trestle | `Twilio - SMS/MMS-SVR` |
+| Twilio Lookup | `Twilio - SMS/MMS-SVR` |
+| 1Lookup | *no carrier* (`N/A`) — an abstain |
+
+The same holds for a category E number mid-port. Onvoy appears **only** in the
+porting/NPAC system, which is a different register from the OCN/LRN data
+validation vendors read.
+
+**Corrected position:** `truth_carrier` for owned Twilio DIDs (categories A, D,
+and E pre-port) is **Twilio**. That is who we buy from, who bills us, and whose
+console administers the numbers — it is what we can actually attest to, which is
+what §3 requires. Recording "Onvoy" would have scored a correct vendor **wrong**,
+which is precisely the error the earlier entry claimed to be preventing, in the
+opposite direction.
+
+**Effect on published figures:** none. No scored run has occurred; this was
+caught before collection.
+
+**Kept for reference:** the private provenance store retains
+`underlying_carrier_pre_port = ONVOY, LLC - PA` as a separate, clearly-labelled
+column. It is a true fact about the numbers and relevant to the port, but it is
+**not** the carrier ground truth for scoring.
+
+**Why this is logged rather than silently fixed:** the first entry was published
+before it was verified against a live vendor response. The correction is the
+mechanism working as intended.
 
 ---
 
@@ -120,7 +151,11 @@ carrier dimension.
   advises their terms prohibit participation by a competitor, their column is
   anonymised to "Vendor D" or withdrawn, and the event is recorded here. Scoring
   of the remaining vendors would not change.
-- **Category A/D carrier of record.** The owned DIDs came from the same Twilio
-  pool as category E and are therefore likely also Onvoy, but this has not been
-  probed. Any carrier expectation for those rows will be confirmed against a live
-  lookup before collection, and recorded here if it changes a stated assumption.
+- ~~**Category A/D carrier of record.**~~ **CLOSED 2026-07-30** — probed against
+  live vendors before the category D release; see the correction above.
+  `truth_carrier` is **Twilio** for all owned DIDs, and this was verified rather
+  than inferred from the pool they came from.
+- **NumVerify free-tier exhaustion.** The 2026-07-30 probe returned
+  `usage_limit_reached` on NumVerify's free tier — independent confirmation that
+  the paid plan §2 commits to ("public paid plan") must be active before
+  collection, not just at publication.
