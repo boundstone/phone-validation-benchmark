@@ -3,5 +3,17 @@ scoring/archive/
 __pycache__/
 # Vendor API credentials for probe/collect (env-var file, sourced at run time).
 scoring/creds.env
+# …and every backup/variant of it. A `creds.env.bak-*` from a repair was sitting
+# untracked in this PUBLIC repo on 2026-07-30 — one `git add -A` from publishing
+# five live vendor API keys.
+scoring/creds.env*
 # Local rehearsal fixture — not part of run № 001.
 scoring/dataset_rehearsal.csv
+# Category C carries REAL volunteer numbers. §7 publishes them as row ID + last-4
+# only, and CONSENT.md promises the number is never published. intake.py writes
+# to the private store, never here — these patterns are belt-and-braces in case a
+# working file is ever produced in-tree by mistake.
+scoring/volunteers.csv
+scoring/dataset_C.csv
+scoring/dataset_volunteers.csv
+scoring/dataset_full.csv
